@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TASKGEO</title>
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind (Play CDN): no necesita instalación ni compilación -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          fondo: "#040818", panelA: "#0b1446", panelB: "#070d2e", linea: "#1d4ed8",
+          cian: "#19e3ff", azul: "#2f7bff", violeta: "#9b6bff", verde: "#1fe08f",
+          ambar: "#ffb020", rojo: "#ff3b5c", texto: "#e8f1ff", suave: "#8fa6d6",
+        },
+        fontFamily: {
+          pix: ['"Pixelify Sans"', '"Chakra Petch"', "monospace"],
+          ui: ['"Chakra Petch"', "system-ui", "sans-serif"],
+        },
+      } },
+    };
+  </script>
+
+  <!-- Piezas reutilizables que también usa app.js al crear tarjetas -->
+  <style type="text/tailwindcss">
+    @layer base {
+      body {
+        @apply font-ui text-texto bg-fondo min-h-screen p-4;
+        background-image:
+          repeating-linear-gradient(0deg, rgba(25,227,255,.035) 0 1px, transparent 1px 4px),
+          radial-gradient(900px 500px at 85% -10%, #1a2a8c55, transparent);
+      }
+      :focus-visible { @apply outline outline-2 outline-cian outline-offset-2; }
+      input, select, textarea { @apply w-full rounded-xl border-2 border-linea bg-[#060c2c] px-3 py-2 text-texto; }
+      input[type="checkbox"] { @apply w-[26px] h-[26px] p-0 appearance-none grid place-items-center rounded-md cursor-pointer checked:bg-verde checked:border-verde; }
+      input[type="checkbox"]:checked::after { content: "✓"; @apply text-[#031a10] font-bold; }
+      h2 { @apply font-pix font-bold text-2xl; }
+    }
+    @layer components {
+      .panel { @apply bg-gradient-to-b from-panelA to-panelB border-2 border-linea rounded-2xl shadow-[inset_0_0_0_1px_#0a1a66,0_0_18px_rgba(30,110,255,.35)]; }
+      .estado { @apply text-xs text-suave; }
+      .estado.ok { @apply text-verde; }
+      .estado.fallo { @apply text-rojo; }
+      .nav { @apply text-left font-semibold rounded-xl border-2 border-transparent px-3.5 py-3 cursor-pointer hover:border-linea; }
+      .nav.activo { @apply bg-gradient-to-r from-[#0f3fd0] to-[#0a2a96] border-azul shadow-[0_0_14px_rgba(47,123,255,.6)]; }
+      .stats div { @apply flex justify-between text-sm text-suave; }
+      .stats dd { @apply m-0 font-pix text-cian; }
+      .chip { @apply font-semibold text-sm rounded-xl border-2 border-linea bg-[#060c2c] px-4 py-2 cursor-pointer; }
+      .chip.activo { @apply border-cian shadow-[0_0_12px_rgba(25,227,255,.5)]; }
+      .tarea { @apply grid grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_auto_auto] items-center gap-3.5 px-4 py-3 bg-[#070f35] border-2 border-[#17307f] rounded-xl cursor-pointer hover:border-azul; }
+      .tarea[aria-selected="true"] { @apply border-cian shadow-[0_0_16px_rgba(25,227,255,.45)]; }
+      .tarea.hecha strong { @apply line-through text-suave; }
+      .meta { @apply flex flex-wrap items-center gap-3 mt-1.5 text-sm text-suave; }
+      .vencida { @apply text-rojo; }
+      .flecha { @apply hidden sm:block text-2xl text-cian; }
+      .pill { @apply inline-block rounded-full border-[1.5px] px-3.5 py-0.5 text-sm font-semibold; }
+      .pill.etiqueta { @apply text-violeta border-violeta bg-violeta/15; }
+      .pill.Alta { @apply text-rojo border-rojo bg-rojo/15; }
+      .pill.Media { @apply text-ambar border-ambar bg-ambar/15; }
+      .pill.Baja { @apply text-verde border-verde bg-verde/15; }
+      #detalle h3 { @apply font-pix font-bold text-[1.35rem] m-0; }
+      #detalle .meta { @apply justify-between mt-0; }
+      .bloque { @apply border-t border-[#17307f] pt-3; }
+      .bloque h4 { @apply m-0 mb-1.5 text-sm text-cian; }
+      .bloque p { @apply m-0 leading-normal text-suave; }
+      .sub { @apply flex items-center gap-2.5 my-1.5; }
+      .sub input { @apply w-5 h-5; }
+      .acciones { @apply grid gap-2; }
+      .btn { @apply font-semibold border-2 border-linea rounded-xl px-4 py-2.5 cursor-pointer hover:brightness-125; }
+      .btn.azul { @apply bg-gradient-to-r from-[#0f3fd0] to-[#0a2a96] border-cian; }
+      .btn.verde { @apply text-verde border-verde bg-verde/10; }
+      .btn.rojo { @apply text-rojo border-rojo bg-rojo/10; }
+      .vacio { @apply text-suave text-center py-6 px-2 m-0; }
+      .stat-card { @apply grid gap-1 p-4 rounded-xl border-2 border-linea bg-[#070f35]; }
+      .stat-card span { @apply text-sm text-suave; }
+      .stat-card strong { @apply font-pix text-3xl text-cian; }
+      .sub-titulo { @apply m-0 mb-2 font-semibold text-cian; }
+      .barra-fila { @apply grid grid-cols-[100px_1fr_auto] items-center gap-2.5 my-2 text-sm; }
+      .barra-fondo { @apply h-2.5 rounded-full bg-[#0d1a5c] border border-linea overflow-hidden; }
+      .barra-fondo i { @apply block h-full; }
+      .logro { @apply grid gap-0.5 p-3 rounded-xl border-2 border-verde bg-verde/10; }
+      .logro span { @apply text-sm text-suave; }
+      .logro.bloqueado { @apply border-[#17307f] bg-transparent opacity-60; }
+      .fila-item { @apply flex items-center justify-between gap-2.5 px-3 py-2 border border-[#17307f] rounded-xl; }
+      .punto { @apply inline-block w-3 h-3 rounded-full mr-2; }
+      .tag-chip { @apply rounded-full border-[1.5px] border-[#17307f] px-3 py-0.5 text-sm text-suave cursor-pointer; }
+      .tag-chip.on { @apply border-violeta text-violeta bg-violeta/15; }
+      .btn.mini { @apply px-2.5 py-1 text-sm; }
+      .toast { @apply fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl border-2 border-cian bg-panelB text-cian font-semibold shadow-[0_0_18px_rgba(25,227,255,.5)] opacity-0 translate-y-2 pointer-events-none transition; }
+      .toast.visible { @apply opacity-100 translate-y-0; }
+      .mensaje { @apply min-h-[1.3em] mt-3 text-sm text-verde; }
+      .mensaje.error { @apply text-rojo; }
+    }
+  </style>
+</head>
+<body>
+  <header class="panel flex flex-wrap items-center justify-between gap-4 px-5 py-3.5 mb-4">
+    <div class="flex items-center gap-3.5">
+      <img src="img/logo.png" alt="Logo de TASKGEO" width="64" height="64" class="w-16 h-16 [filter:drop-shadow(0_0_8px_rgba(25,227,255,.55))]">
+      <div>
+        <h1 class="m-0 font-pix font-bold text-3xl leading-none tracking-widest uppercase [text-shadow:0_0_10px_rgba(25,227,255,.55)]">TASKGEO</h1>
+        <p class="mt-1 text-cian">Pequeñas tareas, grandes logros</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3.5">
+      <div id="avatar" class="grid place-items-center w-12 h-12 font-pix font-bold text-2xl text-fondo rounded-xl bg-gradient-to-br from-cian to-violeta" aria-hidden="true">?</div>
+      <div class="grid">
+        <strong id="nombre-usuario" class="text-lg text-cian">Usuario</strong>
+        <span id="estado-api" class="estado">Conectando…</span>
+      </div>
+      <div class="grid gap-1 min-w-[150px]">
+        <span id="nivel-texto">Nivel 1</span>
+        <div class="h-2 rounded-full bg-[#0d1a5c] border border-linea overflow-hidden">
+          <i id="xp" class="block h-full w-0 bg-gradient-to-r from-azul to-cian shadow-[0_0_8px_#19e3ff]"></i>
+        </div>
+        <small id="xp-texto" class="text-suave">0 / 10 tareas</small>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid items-start gap-4 lg:grid-cols-[220px_minmax(0,1fr)_340px]">
+    <nav class="panel grid gap-2 p-3" aria-label="Principal">
+      <button class="nav activo" type="button" id="nav-tareas">Mis tareas</button>
+      <button class="nav" type="button" id="nav-stats">Estadísticas y logros</button>
+      <button class="nav" type="button" id="abrir-nueva">Nueva tarea</button>
+      <button class="nav" type="button" id="abrir-gestion">Proyectos y etiquetas</button>
+      <dl id="stats" class="stats hidden lg:grid gap-1.5 mt-2 pt-3 border-t border-linea"></dl>
+    </nav>
+
+    <main id="vista-tareas" class="panel p-[18px]">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3.5">
+        <h2>Mis tareas</h2>
+        <input id="buscar" type="search" placeholder="Buscar tarea…" aria-label="Buscar tarea" class="!w-64 max-w-full">
+      </div>
+      <div class="flex flex-wrap gap-2 mb-3.5" id="filtros">
+        <button type="button" class="chip activo" data-filtro="todas" aria-pressed="true">Todas</button>
+        <button type="button" class="chip" data-filtro="pendientes" aria-pressed="false">Pendientes</button>
+        <button type="button" class="chip" data-filtro="progreso" aria-pressed="false">En progreso</button>
+        <button type="button" class="chip" data-filtro="completadas" aria-pressed="false">Completadas</button>
+      </div>
+      <ul id="tareas" class="grid gap-2.5 m-0 p-0 list-none" role="listbox" aria-label="Lista de tareas"></ul>
+      <p id="mensaje" class="mensaje" role="status"></p>
+    </main>
+
+    <main id="vista-stats" class="panel p-[18px] hidden">
+      <h2 class="mb-4">Estadísticas y logros</h2>
+      <div id="stats-contenido"></div>
+    </main>
+
+    <aside id="detalle" class="panel grid gap-3.5 p-4" aria-live="polite"></aside>
+  </div>
+
+  <dialog id="dialogo" class="w-[min(520px,92vw)] p-6 text-texto bg-panelB border-2 border-cian rounded-2xl shadow-[0_0_30px_rgba(25,227,255,.4)] backdrop:bg-[#020514]/80">
+    <form id="form-tarea" method="dialog" class="grid gap-3">
+      <h2>Nueva tarea</h2>
+      <label class="grid gap-1.5 text-sm text-cian">Título <input id="titulo" required maxlength="200"></label>
+      <label class="grid gap-1.5 text-sm text-cian">Descripción <textarea id="descripcion" rows="3"></textarea></label>
+      <div class="grid gap-2.5 sm:grid-cols-3">
+        <label class="grid gap-1.5 text-sm text-cian">Proyecto <select id="proyecto" required></select></label>
+        <label class="grid gap-1.5 text-sm text-cian">Prioridad
+          <select id="prioridad">
+            <option value="Alta">Alta</option>
+            <option value="Media" selected>Media</option>
+            <option value="Baja">Baja</option>
+          </select>
+        </label>
+        <label class="grid gap-1.5 text-sm text-cian">Vence <input id="fecha" type="date" required></label>
+      </div>
+      <p id="error-form" class="mensaje error" role="alert"></p>
+      <div class="flex justify-end gap-2.5">
+        <button type="button" class="btn" id="cancelar">Cancelar</button>
+        <button type="submit" class="btn azul">Guardar tarea</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dialogo-gestion" class="w-[min(620px,94vw)] p-6 text-texto bg-panelB border-2 border-cian rounded-2xl shadow-[0_0_30px_rgba(25,227,255,.4)] backdrop:bg-[#020514]/80">
+    <div class="grid gap-5">
+      <div class="flex items-center justify-between"><h2>Proyectos y etiquetas</h2><button type="button" class="btn" id="cerrar-gestion">Cerrar</button></div>
+      <section>
+        <h3 class="sub-titulo">Proyectos</h3>
+        <ul id="lista-proyectos" class="grid gap-2 m-0 p-0 list-none"></ul>
+        <form id="form-proyecto" class="grid gap-2 mt-3 sm:grid-cols-[1fr_110px_150px_auto] items-end">
+          <input id="p-nombre" placeholder="Nombre del proyecto" aria-label="Nombre del proyecto" required maxlength="150">
+          <input id="p-presupuesto" type="number" min="0" step="0.01" value="0" aria-label="Presupuesto" required>
+          <input id="p-fecha" type="date" aria-label="Fecha límite" required>
+          <button type="submit" class="btn azul">Crear</button>
+        </form>
+      </section>
+      <section>
+        <h3 class="sub-titulo">Etiquetas</h3>
+        <ul id="lista-etiquetas" class="grid gap-2 m-0 p-0 list-none"></ul>
+        <form id="form-etiqueta" class="grid gap-2 mt-3 sm:grid-cols-[1fr_70px_auto] items-end">
+          <input id="e-nombre" placeholder="Nombre de la etiqueta" aria-label="Nombre de la etiqueta" required maxlength="50">
+          <input id="e-color" type="color" value="#19e3ff" aria-label="Color" class="h-[42px] !p-1">
+          <button type="submit" class="btn azul">Crear</button>
+        </form>
+      </section>
+      <p id="error-gestion" class="mensaje error" role="alert"></p>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
